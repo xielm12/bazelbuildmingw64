@@ -2,40 +2,14 @@
 
 This directory contains a reusable MinGW toolchain configuration for Bazel.
 
-## Publishing to GitHub
-
-To share this toolchain, you can push this directory to a GitHub repository (e.g., `my-mingw-toolchain`).
-
-### 1. Repository Structure
+## 1. Repository Structure
 Ensure the repository root looks like this:
 
 ```text
-my-mingw-toolchain/
+bazelbuildmingw64/
 ├── MODULE.bazel          # (Create this file, see below)
 ├── BUILD                 # (Empty or exports bzl files)
 └── cc_toolchain_config.bzl
-```
-
-### 2. Create `MODULE.bazel`
-Create a `MODULE.bazel` file in the root of the new repository:
-
-```starlark
-module(
-    name = "mingw_toolchain",
-    version = "1.0.0",
-    compatibility_level = 1,
-)
-
-bazel_dep(name = "rules_cc", version = "0.0.9")
-bazel_dep(name = "platforms", version = "0.0.10")
-```
-
-### 3. Clean up `BUILD`
-Ensure the `BUILD` file exports the Starlark file so others can use it. It shouldn't contain hardcoded paths like the local example.
-
-```starlark
-package(default_visibility = ["//visibility:public"])
-exports_files(["cc_toolchain_config.bzl"])
 ```
 
 ---
@@ -47,26 +21,29 @@ To use this toolchain in another Bazel project:
 ### 1. Add dependency in `MODULE.bazel`
 
 ```starlark
-bazel_dep(name = "mingw_toolchain")
+bazel_dep(name = "bazelbuildmingw64", version = "1.0")
 
 git_override(
-    module_name = "mingw_toolchain",
+    module_name = "bazelbuildmingw64",
     remote = "https://github.com/xielm12/bazelbuildmingw64.git",
-    commit = "<COMMIT_HASH>",
+    commit = "7c02a9439cef741f2c5475db1c3997bc860afd16"
 )
 
-register_toolchains("//toolchains:my_mingw_toolchain")
+bazel_dep(name = "rules_cc", version = "0.2.16")
+bazel_dep(name = "platforms", version = "1.0.0")
+register_toolchains("//:mingw_cc_toolchain")
 ```
 
-### 2. Configure in `toolchains/BUILD` (or any package)
+### 2. Configure in `BUILD` (or any package)
 
-In your project, create a `BUILD` file (e.g., in `toolchains/BUILD`) and define a toolchain using your local paths:
+In your project, create a `BUILD` file (e.g., in `BUILD`) and define a toolchain using your local paths:
 
 ```starlark
-load("@mingw_toolchain//:cc_toolchain_config.bzl", "mingw_toolchain")
+load("@bazelbuildmingw64//:cc_toolchain_config.bzl", "mingw_toolchain")
+package(default_visibility = ["//visibility:public"])
 
 mingw_toolchain(
-    name = "my_mingw_toolchain",
+    name = "mingw_cc_toolchain",
     tool_bin_path = "D:/scoop/apps/msys2/2024-12-08/ucrt64/bin", # <--- Your local path
     include_directories = [
         "D:/scoop/apps/msys2/2024-12-08/ucrt64/include",     # <--- Your local includes
@@ -74,4 +51,10 @@ mingw_toolchain(
         "D:/scoop/apps/msys2/2024-12-08/usr/include",
     ],
 )
+
+cc_binary(
+    name = "hello",
+    srcs = ["hello.cc"],
+)
 ```
+
